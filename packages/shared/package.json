@@ -1,0 +1,8 @@
+{
+  "name": "@collectflow/shared",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": { "build": "echo ok" },
+  "devDependencies": { "typescript": "*" }
+}

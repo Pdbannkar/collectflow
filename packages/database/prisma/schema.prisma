@@ -1,0 +1,890 @@
+// CollectFlow — Prisma Schema v1
+// PostgreSQL — Tenant isolation via business_id on every business-owned table
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════
+// USERS & AUTH
+// ═══════════════════════════════════════════════
+
+model User {
+  id          String    @id @default(cuid())
+  phone       String    @unique
+  email       String?   @unique
+  name        String?
+  role        UserRole  @default(BUSINESS_OWNER)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  businesses      Business[]       @relation("BusinessOwner")
+  businessMembers BusinessMember[]
+  otpTokens       OtpToken[]
+  refreshTokens   RefreshToken[]
+  supportTickets  SupportTicket[]  @relation("TicketRaiser")
+  auditLogs       AuditLog[]
+
+  @@index([phone])
+  @@map("users")
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  userId    String?
+  phone     String
+  otp       String
+  purpose   String
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([phone, purpose])
+  @@index([expiresAt])
+  @@map("otp_tokens")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  BUSINESS_OWNER
+  BUSINESS_STAFF
+  CUSTOMER
+}
+
+// ═══════════════════════════════════════════════
+// BUSINESSES
+// ═══════════════════════════════════════════════
+
+model Business {
+  id               String           @id @default(cuid())
+  name             String
+  slug             String           @unique
+  category         BusinessCategory
+  ownerId          String
+  phone            String
+  email            String
+  address          String
+  city             String
+  state            String
+  pinCode          String
+  pan              String?
+  gstin            String?
+  businessType     String?
+  website          String?
+  description      String?
+  logoUrl          String?
+  status           BusinessStatus   @default(PENDING)
+  gatewayStatus    BusinessStatus   @default(PENDING)
+  rejectionReason  String?
+  suspensionReason String?
+  isLendingEnabled Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  owner             User                   @relation("BusinessOwner", fields: [ownerId], references: [id])
+  members           BusinessMember[]
+  documents         BusinessDocument[]
+  verificationLogs  BusinessVerification[]
+  customers         Customer[]
+  paymentPlans      PaymentPlan[]
+  mandates          Mandate[]
+  paymentAttempts   PaymentAttempt[]
+  transactions      Transaction[]
+  refunds           Refund[]
+  webhookEvents     WebhookEvent[]
+  settlementRecords SettlementRecord[]
+  receipts          Receipt[]
+  notifications     Notification[]
+  supportTickets    SupportTicket[]
+  subscription      BusinessSubscription?
+  gatewayAccounts   GatewayAccount[]
+  auditLogs         AuditLog[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([category])
+  @@map("businesses")
+}
+
+model BusinessMember {
+  id          String    @id @default(cuid())
+  businessId  String
+  userId      String
+  role        StaffRole @default(STAFF)
+  permissions Json      @default("{}")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@map("business_members")
+}
+
+model BusinessDocument {
+  id           String              @id @default(cuid())
+  businessId   String
+  documentType VerificationDocType
+  fileUrl      String
+  fileName     String
+  fileSize     Int
+  mimeType     String
+  status       DocumentStatus      @default(PENDING)
+  reviewNote   String?
+  uploadedAt   DateTime            @default(now())
+  reviewedAt   DateTime?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("business_documents")
+}
+
+model BusinessVerification {
+  id         String         @id @default(cuid())
+  businessId String
+  fromStatus BusinessStatus
+  toStatus   BusinessStatus
+  note       String?
+  reviewedBy String?
+  createdAt  DateTime       @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@map("business_verification_logs")
+}
+
+enum BusinessCategory {
+  SCHOOL
+  TUITION
+  MESS
+  MOBILE_SHOP
+  ELECTRONICS
+  MEMBERSHIP
+  LENDING
+  OTHER
+}
+
+enum BusinessStatus {
+  PENDING
+  DOCUMENTS_REQUIRED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum StaffRole {
+  OWNER
+  MANAGER
+  STAFF
+  VIEWER
+}
+
+enum VerificationDocType {
+  PAN
+  GSTIN
+  BUSINESS_REGISTRATION
+  AADHAAR
+  BANK_STATEMENT
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ═══════════════════════════════════════════════
+// CUSTOMERS
+// ═══════════════════════════════════════════════
+
+model Customer {
+  id                  String         @id @default(cuid())
+  businessId          String
+  fullName            String
+  phone               String
+  email               String?
+  referenceId         String?
+  address             String?
+  notes               String?
+  customFields        Json           @default("{}")
+  status              CustomerStatus @default(ACTIVE)
+  portalAccessEnabled Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  paymentPlans  PaymentPlan[]
+  mandates      Mandate[]
+  receipts      Receipt[]
+  notifications Notification[]
+
+  @@unique([businessId, phone])
+  @@index([businessId])
+  @@index([phone])
+  @@map("customers")
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+// ═══════════════════════════════════════════════
+// PAYMENT PLANS & SCHEDULES
+// ═══════════════════════════════════════════════
+
+model PaymentPlan {
+  id                  String            @id @default(cuid())
+  businessId          String
+  customerId          String
+  name                String
+  description         String?
+  totalAmount         Decimal           @db.Decimal(12, 2)
+  instalmentAmount    Decimal           @db.Decimal(12, 2)
+  paidAmount          Decimal           @db.Decimal(12, 2) @default(0)
+  outstandingAmount   Decimal           @db.Decimal(12, 2)
+  frequency           PaymentFrequency
+  startDate           DateTime
+  endDate             DateTime?
+  numberOfInstalments Int?
+  instalmentsPaid     Int               @default(0)
+  dueDayOfMonth       Int?
+  gracePeriodDays     Int               @default(0)
+  lateFeeAmount       Decimal?          @db.Decimal(10, 2)
+  paymentMethod       PaymentMethod
+  requiresMandate     Boolean           @default(false)
+  status              PaymentPlanStatus @default(DRAFT)
+  cancelReason        String?
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer  Customer          @relation(fields: [customerId], references: [id])
+  schedules PaymentSchedule[]
+  mandates  Mandate[]
+  receipts  Receipt[]
+
+  @@index([businessId])
+  @@index([customerId])
+  @@index([status])
+  @@index([businessId, status])
+  @@map("payment_plans")
+}
+
+model PaymentSchedule {
+  id           String         @id @default(cuid())
+  businessId   String
+  planId       String
+  instalmentNo Int
+  dueDate      DateTime
+  amount       Decimal        @db.Decimal(12, 2)
+  lateFee      Decimal        @db.Decimal(10, 2) @default(0)
+  status       ScheduleStatus @default(PENDING)
+  paidAt       DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  plan            PaymentPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  paymentAttempts PaymentAttempt[]
+  receipt         Receipt?
+
+  @@index([businessId])
+  @@index([planId])
+  @@index([dueDate])
+  @@index([status])
+  @@index([businessId, dueDate, status])
+  @@map("payment_schedules")
+}
+
+enum PaymentFrequency {
+  ONE_TIME
+  DAILY
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUALLY
+  CUSTOM
+}
+
+enum PaymentMethod {
+  UPI_AUTOPAY
+  ENACH
+  PAYMENT_LINK
+  UPI_ONE_TIME
+  MANUAL
+}
+
+enum PaymentPlanStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum ScheduleStatus {
+  PENDING
+  DUE
+  PAID
+  OVERDUE
+  SKIPPED
+  CANCELLED
+}
+
+// ═══════════════════════════════════════════════
+// MANDATES
+// ═══════════════════════════════════════════════
+
+model Mandate {
+  id                String        @id @default(cuid())
+  businessId        String
+  customerId        String
+  planId            String?
+  gatewayAccountId  String
+  providerMandateId String?
+  authUrl           String?
+  method            PaymentMethod
+  maxAmount         Decimal       @db.Decimal(12, 2)
+  status            MandateStatus @default(PENDING)
+  activatedAt       DateTime?
+  cancelledAt       DateTime?
+  revokedAt         DateTime?
+  expiresAt         DateTime?
+  raw               Json          @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  business       Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer       Customer       @relation(fields: [customerId], references: [id])
+  plan           PaymentPlan?   @relation(fields: [planId], references: [id])
+  gatewayAccount GatewayAccount @relation(fields: [gatewayAccountId], references: [id])
+
+  @@index([businessId])
+  @@index([customerId])
+  @@index([status])
+  @@map("mandates")
+}
+
+enum MandateStatus {
+  PENDING
+  AUTHORISATION_REQUESTED
+  ACTIVE
+  PAUSED
+  CANCELLED
+  REVOKED
+  EXPIRED
+  FAILED
+}
+
+// ═══════════════════════════════════════════════
+// PAYMENTS & TRANSACTIONS
+// ═══════════════════════════════════════════════
+
+model PaymentAttempt {
+  id                String        @id @default(cuid())
+  businessId        String
+  scheduleId        String
+  gatewayAccountId  String
+  idempotencyKey    String        @unique
+  providerPaymentId String?
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  method            PaymentMethod
+  failureReason     String?
+  providerResponse  Json          @default("{}")
+  initiatedAt       DateTime      @default(now())
+  confirmedAt       DateTime?
+  reconciledAt      DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  schedule       PaymentSchedule @relation(fields: [scheduleId], references: [id])
+  gatewayAccount GatewayAccount  @relation(fields: [gatewayAccountId], references: [id])
+  transaction    Transaction?
+
+  @@index([businessId])
+  @@index([scheduleId])
+  @@index([status])
+  @@index([idempotencyKey])
+  @@map("payment_attempts")
+}
+
+model Transaction {
+  id                String        @id @default(cuid())
+  businessId        String
+  attemptId         String        @unique
+  providerTxnId     String?
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @default("INR")
+  status            PaymentStatus
+  method            PaymentMethod
+  settlementId      String?
+  platformFeeAmount Decimal       @db.Decimal(10, 2) @default(0)
+  netAmount         Decimal       @db.Decimal(12, 2)
+  metadata          Json          @default("{}")
+  recordedAt        DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+
+  business    Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  attempt     PaymentAttempt    @relation(fields: [attemptId], references: [id])
+  settlement  SettlementRecord? @relation(fields: [settlementId], references: [id])
+  receipt     Receipt?
+
+  @@index([businessId])
+  @@index([status])
+  @@index([recordedAt])
+  @@map("transactions")
+}
+
+model Refund {
+  id               String       @id @default(cuid())
+  businessId       String
+  transactionId    String
+  idempotencyKey   String       @unique
+  providerRefundId String?
+  amount           Decimal      @db.Decimal(12, 2)
+  reason           String
+  status           RefundStatus @default(PENDING)
+  processedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([transactionId])
+  @@map("refunds")
+}
+
+enum PaymentStatus {
+  PENDING
+  INITIATED
+  SUCCESS
+  FAILED
+  UNKNOWN
+  CANCELLED
+  REFUNDED
+  REVERSED
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ═══════════════════════════════════════════════
+// GATEWAY ACCOUNTS & CONFIG
+// ═══════════════════════════════════════════════
+
+model GatewayAccount {
+  id               String               @id @default(cuid())
+  businessId       String
+  provider         GatewayProvider
+  merchantId       String?
+  isLiveEnabled    Boolean              @default(false)
+  isSandbox        Boolean              @default(true)
+  encryptedConfig  Json                 @default("{}")
+  supportedMethods PaymentMethod[]
+  status           GatewayAccountStatus @default(PENDING)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  business        Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  mandates        Mandate[]
+  paymentAttempts PaymentAttempt[]
+
+  @@index([businessId])
+  @@map("gateway_accounts")
+}
+
+model GatewayConfig {
+  id        String          @id @default(cuid())
+  provider  GatewayProvider @unique
+  isEnabled Boolean         @default(false)
+  config    Json            @default("{}")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@map("gateway_configs")
+}
+
+enum GatewayProvider {
+  CASHFREE
+  RAZORPAY
+  PAYU
+  MANUAL
+}
+
+enum GatewayAccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+// ═══════════════════════════════════════════════
+// WEBHOOKS & RECONCILIATION
+// ═══════════════════════════════════════════════
+
+model WebhookEvent {
+  id              String          @id @default(cuid())
+  businessId      String?
+  provider        GatewayProvider
+  eventType       String
+  providerEventId String?
+  idempotencyKey  String          @unique
+  payload         Json
+  signature       String?
+  isVerified      Boolean         @default(false)
+  isProcessed     Boolean         @default(false)
+  processingError String?
+  receivedAt      DateTime        @default(now())
+  processedAt     DateTime?
+
+  business Business? @relation(fields: [businessId], references: [id])
+
+  @@index([provider])
+  @@index([isProcessed])
+  @@map("webhook_events")
+}
+
+model SettlementRecord {
+  id           String          @id @default(cuid())
+  businessId   String
+  provider     GatewayProvider
+  settlementId String          @unique
+  amount       Decimal         @db.Decimal(14, 2)
+  currency     String          @default("INR")
+  settledAt    DateTime
+  periodFrom   DateTime?
+  periodTo     DateTime?
+  raw          Json            @default("{}")
+  createdAt    DateTime        @default(now())
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([businessId])
+  @@map("settlement_records")
+}
+
+// ═══════════════════════════════════════════════
+// RECEIPTS
+// ═══════════════════════════════════════════════
+
+model Receipt {
+  id            String   @id @default(cuid())
+  businessId    String
+  customerId    String
+  planId        String?
+  scheduleId    String?  @unique
+  transactionId String?  @unique
+  receiptNo     String   @unique
+  amount        Decimal  @db.Decimal(12, 2)
+  paidAt        DateTime
+  fileUrl       String?
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  business    Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  plan        PaymentPlan?     @relation(fields: [planId], references: [id])
+  schedule    PaymentSchedule? @relation(fields: [scheduleId], references: [id])
+  transaction Transaction?     @relation(fields: [transactionId], references: [id])
+
+  @@index([businessId])
+  @@index([customerId])
+  @@map("receipts")
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════
+
+model NotificationTemplate {
+  id        String              @id @default(cuid())
+  event     NotificationEvent
+  channel   NotificationChannel
+  subject   String?
+  body      String              @db.Text
+  variables Json                @default("[]")
+  isActive  Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@unique([event, channel])
+  @@map("notification_templates")
+}
+
+model Notification {
+  id         String              @id @default(cuid())
+  businessId String?
+  customerId String?
+  event      NotificationEvent
+  channel    NotificationChannel
+  recipient  String
+  subject    String?
+  body       String              @db.Text
+  status     NotifStatus         @default(PENDING)
+  errorMsg   String?
+  sentAt     DateTime?
+  createdAt  DateTime            @default(now())
+
+  business Business? @relation(fields: [businessId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([businessId])
+  @@index([status])
+  @@map("notifications")
+}
+
+enum NotificationEvent {
+  CUSTOMER_ADDED
+  PLAN_CREATED
+  MANDATE_REQUESTED
+  MANDATE_ACTIVE
+  PAYMENT_REMINDER
+  PAYMENT_UPCOMING
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PAYMENT_OVERDUE
+  RECEIPT_GENERATED
+  PLAN_COMPLETED
+  PLAN_CANCELLED
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+  WHATSAPP
+  PUSH
+}
+
+enum NotifStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// ═══════════════════════════════════════════════
+// SUBSCRIPTIONS & PLATFORM BILLING
+// ═══════════════════════════════════════════════
+
+model SubscriptionPlan {
+  id                 String    @id @default(cuid())
+  name               String
+  tier               PlanTier
+  monthlyPrice       Decimal   @db.Decimal(10, 2)
+  annualPrice        Decimal   @db.Decimal(10, 2)
+  maxCustomers       Int?
+  maxPlans           Int?
+  maxStaff           Int       @default(1)
+  features           Json      @default("{}")
+  transactionFeeRate Decimal   @db.Decimal(5, 4) @default(0)
+  isActive           Boolean   @default(true)
+  trialDays          Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  subscriptions BusinessSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model BusinessSubscription {
+  id                 String             @id @default(cuid())
+  businessId         String             @unique
+  planId             String
+  status             SubscriptionStatus @default(TRIAL)
+  billingCycle       BillingCycle       @default(MONTHLY)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  trialEndsAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan @relation(fields: [planId], references: [id])
+  invoices PlatformInvoice[]
+
+  @@index([status])
+  @@map("business_subscriptions")
+}
+
+model PlatformInvoice {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("INR")
+  status         InvoiceStatus @default(PENDING)
+  dueDate        DateTime
+  paidAt         DateTime?
+  periodFrom     DateTime
+  periodTo       DateTime
+  invoiceNo      String        @unique
+  fileUrl        String?
+  createdAt      DateTime      @default(now())
+
+  subscription BusinessSubscription @relation(fields: [subscriptionId], references: [id])
+
+  @@map("platform_invoices")
+}
+
+enum PlanTier {
+  FREE_TRIAL
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  VOID
+}
+
+// ═══════════════════════════════════════════════
+// SUPPORT TICKETS
+// ═══════════════════════════════════════════════
+
+model SupportTicket {
+  id          String         @id @default(cuid())
+  businessId  String?
+  raisedById  String
+  subject     String
+  description String         @db.Text
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  assignedTo  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  business  Business?       @relation(fields: [businessId], references: [id])
+  raisedBy  User            @relation("TicketRaiser", fields: [raisedById], references: [id])
+  comments  TicketComment[]
+
+  @@index([businessId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model TicketComment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  authorId   String
+  content    String   @db.Text
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_comments")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ═══════════════════════════════════════════════
+// AUDIT LOGS & SETTINGS
+// ═══════════════════════════════════════════════
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  businessId String?
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  business Business? @relation(fields: [businessId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
+
+  @@index([businessId])
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model AdminSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_settings")
+}
