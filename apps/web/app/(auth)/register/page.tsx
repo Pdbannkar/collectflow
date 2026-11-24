@@ -6,14 +6,21 @@ import Link from 'next/link';
 import {
   School, Utensils, Smartphone, Dumbbell, Building, Briefcase,
   CheckCircle2, ArrowRight, ArrowLeft, RefreshCw, ShieldCheck,
-  Check, Sparkles, Building2, MapPin, Mail, Phone, User
+  Check, Sparkles, Building2, MapPin, Mail, Phone, User, AlertCircle
 } from 'lucide-react';
+import { verifyPanAutomatically, validatePanFormat, PanVerificationResult } from '@/lib/pan-verification';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // PAN Verification State
+  const [panInput, setPanInput] = useState<string>('');
+  const [isVerifyingPan, setIsVerifyingPan] = useState<boolean>(false);
+  const [panResult, setPanResult] = useState<PanVerificationResult | null>(null);
+  const [panError, setPanError] = useState<string>('');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -47,6 +54,31 @@ export default function RegisterPage() {
 
   const handleFieldChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleVerifyPan = async () => {
+    const format = validatePanFormat(panInput);
+    if (!format.valid) {
+      setPanError(format.error || 'Invalid PAN structure');
+      setPanResult(null);
+      return;
+    }
+
+    setIsVerifyingPan(true);
+    setPanError('');
+    try {
+      const result = await verifyPanAutomatically(panInput, formData.ownerName || formData.businessName);
+      setPanResult(result);
+      if (!result.valid) {
+        setPanError(result.message);
+      } else if (!formData.businessName && result.registeredName) {
+        setFormData((prev) => ({ ...prev, businessName: result.registeredName || prev.businessName }));
+      }
+    } catch {
+      setPanError('PAN verification service timed out. Please try again.');
+    } finally {
+      setIsVerifyingPan(false);
+    }
   };
 
   const handleNextStep = (e: React.FormEvent) => {
@@ -386,6 +418,79 @@ export default function RegisterPage() {
                       className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-brand-600 focus:outline-none"
                     />
                   </div>
+                </div>
+
+                {/* ─── PAN Card Verification Block ─── */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-brand-50/40 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5 text-xs">
+                      <ShieldCheck className="w-4 h-4 text-brand-600" />
+                      Business / Proprietor PAN (Instant Validation)
+                    </label>
+                    <span className="text-[10px] font-semibold text-brand-600 bg-brand-100/60 px-2 py-0.5 rounded">
+                      ITD Verification
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={panInput}
+                      maxLength={10}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setPanInput(val);
+                        setPanError('');
+                        if (panResult) setPanResult(null);
+                      }}
+                      placeholder="e.g. ABCDE1234F"
+                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 font-mono uppercase font-bold text-slate-900 focus:border-brand-600 focus:outline-none text-sm tracking-wider"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyPan}
+                      disabled={isVerifyingPan || panInput.trim().length !== 10}
+                      className="px-4 py-2.5 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-1.5 text-xs whitespace-nowrap shadow-sm"
+                    >
+                      {isVerifyingPan ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Verify PAN
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {panError && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-rose-600 font-medium">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{panError}</span>
+                    </div>
+                  )}
+
+                  {panResult && panResult.valid && (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1 animate-fade-in">
+                      <div className="flex items-center justify-between font-bold text-emerald-800">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" /> PAN Verified with ITD
+                        </span>
+                        <span className="bg-emerald-200/60 text-emerald-900 px-2 py-0.5 rounded text-[10px] uppercase font-mono">
+                          {panResult.entityType}
+                        </span>
+                      </div>
+                      {panResult.registeredName && (
+                        <p className="text-[11px] text-emerald-900">
+                          Registered Legal Name: <strong className="font-semibold">{panResult.registeredName}</strong>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-400">
+                    Optional during registration. 4th letter identifies entity structure (P: Individual, C: Company, F: Firm).
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-3 pt-4">
