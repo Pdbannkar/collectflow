@@ -14,7 +14,13 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(compression());
-  app.enableCors({ origin: cfg.get('APP_URL', 'http://localhost:3000'), credentials: true });
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Allow all origins (Vercel, custom domain, localhost) in production
+      callback(null, true);
+    },
+    credentials: true,
+  });
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new AllExceptionsFilter());
