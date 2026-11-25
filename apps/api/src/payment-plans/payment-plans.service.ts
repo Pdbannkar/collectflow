@@ -2,7 +2,7 @@
 import { PrismaService } from '../common/prisma/prisma.service';
 
 @Injectable()
-export class Payment $args[0].Groups[1].Value.ToUpper() lansService {
-  private readonly logger = new Logger(Payment $args[0].Groups[1].Value.ToUpper() lansService.name);
+export class PaymentPlansService {
+  private readonly logger = new Logger(PaymentPlansService.name);
   constructor(private prisma: PrismaService) {}
 }
