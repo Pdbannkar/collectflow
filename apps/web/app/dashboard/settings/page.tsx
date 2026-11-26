@@ -24,7 +24,7 @@ export default function SettingsPage() {
       )}
 
       <div>
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Business Settings & Gateway Setup</h2>
+        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Settings</h2>
         <p className="text-xs text-slate-500 mt-0.5">
           Configure payment gateway adapters, settlement bank account, and WhatsApp templates.
         </p>

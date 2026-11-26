@@ -1,331 +1,222 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
-import {
-  TrendingUp, Users, CreditCard, Clock, ArrowUpRight,
-  AlertTriangle, CheckCircle2, RefreshCw, Download, Plus,
-  FileText, Smartphone, Send, Search, Filter
-} from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { AlertTriangle, ArrowRight, CalendarClock, Check, IndianRupee, Send, UserPlus, CalendarPlus } from 'lucide-react';
+import { useStore, nextDue, daysUntil, dueLabel, startOfToday } from '@/lib/store';
+import { formatCurrency } from '@/lib/utils';
+import { Avatar, Card, StatusBadge } from '@/components/ui';
 
-export default function DashboardOverviewPage() {
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'SUCCESS' | 'PENDING' | 'FAILED'>('ALL');
-  const [reminderToast, setReminderToast] = useState<string>('');
+export default function HomePage() {
+  const { customers, plans, payments, customerById, openSheet, remind } = useStore();
 
-  const metrics = {
-    todayCollection: 48500,
-    todayCount: 14,
-    monthCollection: 384000,
-    monthCount: 112,
-    totalOutstanding: 112000,
-    activeCustomers: 142,
-    activePlans: 148,
-    upcomingNext7Days: 64500,
-  };
+  const stats = useMemo(() => {
+    const today = startOfToday();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const paid = payments.filter((p) => p.status === 'SUCCESS');
+    const sum = (list: typeof paid) => list.reduce((s, p) => s + p.amount, 0);
+    const todayList = paid.filter((p) => new Date(p.date) >= today);
+    const monthList = paid.filter((p) => new Date(p.date) >= monthStart);
 
-  const recentTransactions = [
-    { id: 'TXN-9081', customer: 'Aarav Sharma', plan: 'Class 8 Annual Tuition', amount: 3500, method: 'UPI AutoPay', status: 'SUCCESS', date: '2026-11-18 10:24 AM' },
-    { id: 'TXN-9082', customer: 'Kavita Deshmukh', plan: 'Class 9 Bus & Lab Fee', amount: 4200, method: 'UPI AutoPay', status: 'SUCCESS', date: '2026-11-18 09:15 AM' },
-    { id: 'TXN-9083', customer: 'Sunil Verma', plan: 'Class 10 Term Fee', amount: 8000, method: 'Payment Link', status: 'PENDING', date: '2026-11-18 08:30 AM' },
-    { id: 'TXN-9084', customer: 'Pooja Iyer', plan: 'Quarterly Activity Fee', amount: 2500, method: 'UPI AutoPay', status: 'SUCCESS', date: '2026-11-17 06:12 PM' },
-    { id: 'TXN-9085', customer: 'Nitin Gadkari', plan: 'Transportation Monthly', amount: 1800, method: 'eNACH Mandate', status: 'FAILED', date: '2026-11-17 03:40 PM', error: 'Insufficient Bank Balance' },
-  ];
+    const open = plans
+      .filter((p) => p.status === 'ACTIVE')
+      .map((p) => ({ plan: p, due: nextDue(p) }))
+      .filter((x): x is { plan: typeof x.plan; due: Date } => !!x.due);
 
-  const upcomingDueSchedule = [
-    { customer: 'Mohit Rao', plan: 'Class 7 Monthly', amount: 3200, dueDate: '2026-11-20', status: 'Mandate Queued' },
-    { customer: 'Deepika S.', plan: 'Class 9 Tuition', amount: 4000, dueDate: '2026-11-21', status: 'WhatsApp Link Sent' },
-    { customer: 'Rohan Mehra', plan: 'Term 2 Fee', amount: 6500, dueDate: '2026-11-22', status: 'Mandate Queued' },
-  ];
+    const late = open.filter((x) => daysUntil(x.due) < 0).sort((a, b) => a.due.getTime() - b.due.getTime());
+    const dueSoon = open
+      .filter((x) => daysUntil(x.due) >= 0 && daysUntil(x.due) <= 7)
+      .sort((a, b) => a.due.getTime() - b.due.getTime());
 
-  const handleSendReminder = (customer: string) => {
-    setReminderToast(`WhatsApp payment reminder & receipt link sent to ${customer}!`);
-    setTimeout(() => setReminderToast(''), 4000);
-  };
+    return {
+      today: sum(todayList),
+      todayCount: todayList.length,
+      month: sum(monthList),
+      monthCount: monthList.length,
+      late,
+      lateTotal: late.reduce((s, x) => s + x.plan.amount, 0),
+      dueSoon,
+      dueSoonTotal: dueSoon.reduce((s, x) => s + x.plan.amount, 0),
+    };
+  }, [plans, payments]);
 
-  const filteredTxns = recentTransactions.filter((tx) => {
-    if (activeFilter === 'ALL') return true;
-    return tx.status === activeFilter;
-  });
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const isNew = customers.length === 0 || plans.length === 0;
 
   return (
-    <div className="space-y-8">
-      
-      {/* Toast Notification */}
-      {reminderToast && (
-        <div className="p-3.5 rounded-xl bg-emerald-600 text-white font-medium text-xs shadow-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>{reminderToast}</span>
-          </div>
-          <button onClick={() => setReminderToast('')} className="text-white/80 hover:text-white">✕</button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">{greeting} 👋</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          {stats.late.length > 0
+            ? `${stats.late.length} ${stats.late.length === 1 ? 'payment is' : 'payments are'} late. Start with those below.`
+            : 'Everything is on time. Nice work!'}
+        </p>
+      </div>
+
+      {/* Getting started */}
+      {isNew && (
+        <Card className="p-5 space-y-3">
+          <h3 className="text-base font-bold text-slate-900">Get started in 3 steps</h3>
+          {[
+            { done: customers.length > 0, label: 'Add your first customer', icon: UserPlus, onClick: () => openSheet({ type: 'customer' }) },
+            { done: plans.length > 0, label: 'Set up how much they pay and how often', icon: CalendarPlus, onClick: () => openSheet({ type: 'plan' }) },
+            { done: payments.length > 0, label: 'Collect your first payment', icon: IndianRupee, onClick: () => openSheet({ type: 'collect' }) },
+          ].map((s, i) => (
+            <button key={i} onClick={s.onClick} disabled={s.done} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left disabled:opacity-60">
+              <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${s.done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {s.done ? <Check className="w-4 h-4" /> : i + 1}
+              </span>
+              <span className="flex-1 text-sm font-semibold text-slate-800">{s.label}</span>
+              {!s.done && <ArrowRight className="w-4 h-4 text-slate-400" />}
+            </button>
+          ))}
+        </Card>
       )}
 
-      {/* Top Welcome & Actions Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Collection Overview</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Real-time fee tracking, upcoming UPI AutoPay debits, and verified settlements.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <Link
-            href="/dashboard/customers"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 text-xs font-bold shadow-sm transition-colors"
-          >
-            <Users className="w-3.5 h-3.5" />
-            Add Customer
-          </Link>
-          <Link
-            href="/dashboard/plans"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white bg-brand-600 hover:bg-brand-700 text-xs font-bold shadow-md shadow-brand-600/20 transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Payment Plan
-          </Link>
-        </div>
+      {/* Key numbers */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Stat label="Received today" value={formatCurrency(stats.today)} note={`${stats.todayCount} payments`} tone="emerald" />
+        <Stat label="This month" value={formatCurrency(stats.month)} note={`${stats.monthCount} payments`} tone="brand" />
+        <Stat label="Late" value={formatCurrency(stats.lateTotal)} note={`${stats.late.length} customers`} tone="rose" />
+        <Stat label="Due in 7 days" value={formatCurrency(stats.dueSoonTotal)} note={`${stats.dueSoon.length} customers`} tone="amber" />
       </div>
 
-      {/* ─── 4 CORE METRIC CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        
-        {/* Card 1: Today */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Collections</span>
-            <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-950">
-            {formatCurrency(metrics.todayCollection)}
-          </div>
-          <div className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-            <span>✓ {metrics.todayCount} payments settled</span>
-          </div>
-        </div>
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Late */}
+        <Card className="overflow-hidden">
+          <SectionHead icon={<AlertTriangle className="w-5 h-5 text-rose-500" />} title="Late payments" count={stats.late.length} />
+          {stats.late.length === 0 ? (
+            <p className="px-5 pb-5 text-sm text-slate-500">No one is late. 🎉</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {stats.late.map(({ plan, due }) => {
+                const c = customerById(plan.customerId);
+                if (!c) return null;
+                return (
+                  <DueRow
+                    key={plan.id}
+                    name={c.name}
+                    detail={`${plan.name} · ${dueLabel(due)}`}
+                    detailCls="text-rose-600"
+                    amount={plan.amount}
+                    onRemind={() => remind(c.id)}
+                    onCollect={() => openSheet({ type: 'collect', customerId: c.id, planId: plan.id })}
+                  />
+                );
+              })}
+            </ul>
+          )}
+        </Card>
 
-        {/* Card 2: This Month */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">This Month's Total</span>
-            <span className="w-7 h-7 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">
-              <CreditCard className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-950">
-            {formatCurrency(metrics.monthCollection)}
-          </div>
-          <div className="text-[11px] font-semibold text-brand-600">
-            {metrics.monthCount} recurring instalments
-          </div>
-        </div>
-
-        {/* Card 3: Total Outstanding */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Outstanding</span>
-            <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-950">
-            {formatCurrency(metrics.totalOutstanding)}
-          </div>
-          <div className="text-[11px] font-semibold text-slate-500">
-            Across 18 customer accounts
-          </div>
-        </div>
-
-        {/* Card 4: Upcoming in 7 Days */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Upcoming in 7 Days</span>
-            <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <RefreshCw className="w-4 h-4" />
-            </span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-950">
-            {formatCurrency(metrics.upcomingNext7Days)}
-          </div>
-          <div className="text-[11px] font-semibold text-indigo-600">
-            AutoPay Mandates Queued
-          </div>
-        </div>
-
+        {/* Coming up */}
+        <Card className="overflow-hidden">
+          <SectionHead icon={<CalendarClock className="w-5 h-5 text-amber-500" />} title="Coming up this week" count={stats.dueSoon.length} />
+          {stats.dueSoon.length === 0 ? (
+            <p className="px-5 pb-5 text-sm text-slate-500">Nothing due in the next 7 days.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {stats.dueSoon.map(({ plan, due }) => {
+                const c = customerById(plan.customerId);
+                if (!c) return null;
+                return (
+                  <DueRow
+                    key={plan.id}
+                    name={c.name}
+                    detail={`${plan.name} · ${dueLabel(due)}${plan.autopay ? ' · AutoPay' : ''}`}
+                    amount={plan.amount}
+                    onRemind={plan.autopay ? undefined : () => remind(c.id)}
+                    onCollect={() => openSheet({ type: 'collect', customerId: c.id, planId: plan.id })}
+                  />
+                );
+              })}
+            </ul>
+          )}
+        </Card>
       </div>
 
-      {/* ─── SPLIT SECTION: RECENT TRANSACTIONS & UPCOMING SCHEDULE ─── */}
-      <div className="grid lg:grid-cols-12 gap-8">
-        
-        {/* Left: Recent Transactions Table */}
-        <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col justify-between">
-          <div>
-            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Recent Collections</h3>
-                <p className="text-xs text-slate-500">Verified live payment attempts and AutoPay debits.</p>
-              </div>
-
-              {/* Status Filter Buttons */}
-              <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
-                <button
-                  onClick={() => setActiveFilter('ALL')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${activeFilter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setActiveFilter('SUCCESS')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${activeFilter === 'SUCCESS' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                  Success
-                </button>
-                <button
-                  onClick={() => setActiveFilter('PENDING')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${activeFilter === 'PENDING' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                  Pending
-                </button>
-                <button
-                  onClick={() => setActiveFilter('FAILED')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${activeFilter === 'FAILED' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-500'}`}
-                >
-                  Failed
-                </button>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100">
-                  <tr>
-                    <th className="py-3 px-5">Customer & Plan</th>
-                    <th className="py-3 px-4">Amount</th>
-                    <th className="py-3 px-4">Method</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredTxns.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-5">
-                        <div className="font-bold text-slate-900">{tx.customer}</div>
-                        <div className="text-[11px] text-slate-500">{tx.plan}</div>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
-                        {formatCurrency(tx.amount)}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 font-medium">
-                        {tx.method}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                          tx.status === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          tx.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                          'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {tx.status}
-                        </span>
-                        {tx.error && (
-                          <span className="block text-[10px] text-rose-500 mt-0.5">{tx.error}</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        {tx.status === 'SUCCESS' ? (
-                          <button
-                            onClick={() => alert(`Printing verified receipt for ${tx.id}...`)}
-                            className="text-brand-600 hover:text-brand-800 font-bold hover:underline"
-                          >
-                            Receipt
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleSendReminder(tx.customer)}
-                            className="text-emerald-600 hover:text-emerald-800 font-bold hover:underline"
-                          >
-                            Send Nudge
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="p-4 border-t border-slate-100 text-center bg-slate-50/50">
-            <Link href="/dashboard/payments" className="text-xs font-bold text-brand-600 hover:underline inline-flex items-center gap-1">
-              View Full Transaction Ledger <ArrowUpRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+      {/* Recent */}
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <h3 className="text-base font-bold text-slate-900">Recent payments</h3>
+          <Link href="/dashboard/payments" className="text-sm font-semibold text-brand-700 inline-flex items-center gap-1">
+            See all <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-
-        {/* Right: Upcoming AutoPay Debits */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Next AutoPay Debits</h3>
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                Queued
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {upcomingDueSchedule.map((item, idx) => (
-                <div key={idx} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-900">
-                    <span>{item.customer}</span>
-                    <span className="text-brand-600">{formatCurrency(item.amount)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-slate-500">
-                    <span>{item.plan}</span>
-                    <span className="font-semibold text-slate-700">{formatDate(item.dueDate)}</span>
-                  </div>
-                  <div className="pt-1 flex items-center justify-between">
-                    <span className="text-[10px] font-semibold text-emerald-600">{item.status}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleSendReminder(item.customer)}
-                      className="text-[10px] font-bold text-slate-600 hover:text-brand-600 flex items-center gap-1"
-                    >
-                      <Send className="w-2.5 h-2.5" /> WhatsApp Alert
-                    </button>
+        <ul className="divide-y divide-slate-100">
+          {payments.slice(0, 5).map((p) => {
+            const c = customerById(p.customerId);
+            return (
+              <li key={p.id} className="flex items-center gap-3 px-5 py-3.5">
+                <Avatar name={c?.name ?? '?'} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-slate-900 truncate">{c?.name}</div>
+                  <div className="text-xs text-slate-500">
+                    {p.method} · {new Date(p.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            <Link
-              href="/dashboard/plans"
-              className="w-full inline-block text-center text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl transition-colors"
-            >
-              Manage All Payment Plans
-            </Link>
-          </div>
-
-          {/* Quick Help Card */}
-          <div className="p-5 rounded-3xl bg-gradient-to-br from-brand-900 to-indigo-950 text-white space-y-3 shadow-lg">
-            <h4 className="text-xs font-extrabold tracking-wider uppercase text-brand-300">UPI AutoPay Status</h4>
-            <p className="text-xs text-slate-200 leading-relaxed">
-              Recurring payments are debited between 4:00 AM – 8:00 AM on scheduled due dates via NPCI rails.
-            </p>
-            <div className="pt-1">
-              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded border border-emerald-500/30 inline-block">
-                ✓ Gateway Webhooks Healthy
-              </span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-900">{formatCurrency(p.amount)}</div>
+                  <StatusBadge status={p.status} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
     </div>
+  );
+}
+
+const TONES = {
+  emerald: 'text-emerald-600',
+  brand: 'text-brand-600',
+  rose: 'text-rose-600',
+  amber: 'text-amber-600',
+};
+
+function Stat({ label, value, note, tone }: { label: string; value: string; note: string; tone: keyof typeof TONES }) {
+  return (
+    <Card className="p-4 sm:p-5">
+      <div className="text-sm font-medium text-slate-500">{label}</div>
+      <div className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-1">{value}</div>
+      <div className={`text-xs font-semibold mt-1 ${TONES[tone]}`}>{note}</div>
+    </Card>
+  );
+}
+
+function SectionHead({ icon, title, count }: { icon: React.ReactNode; title: string; count: number }) {
+  return (
+    <div className="flex items-center gap-2 px-5 pt-5 pb-3">
+      {icon}
+      <h3 className="text-base font-bold text-slate-900">{title}</h3>
+      <span className="ml-auto text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-2 py-0.5">{count}</span>
+    </div>
+  );
+}
+
+function DueRow({
+  name, detail, detailCls = 'text-slate-500', amount, onRemind, onCollect,
+}: {
+  name: string; detail: string; detailCls?: string; amount: number; onRemind?: () => void; onCollect: () => void;
+}) {
+  return (
+    <li className="flex items-center gap-3 px-5 py-3.5">
+      <Avatar name={name} />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-slate-900 truncate">{name}</div>
+        <div className={`text-xs truncate ${detailCls}`}>{detail}</div>
+      </div>
+      <div className="text-sm font-bold text-slate-900 hidden sm:block">{formatCurrency(amount)}</div>
+      {onRemind && (
+        <button onClick={onRemind} title="Send WhatsApp reminder" className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50">
+          <Send className="w-4 h-4" />
+        </button>
+      )}
+      <button onClick={onCollect} className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold">
+        Collect
+      </button>
+    </li>
   );
 }

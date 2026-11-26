@@ -13,9 +13,9 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Collection Reports & Financial Exports</h2>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Reports</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Download date-filtered settlement summaries and bank reconciliation statements.
+            Download summaries of what you collected.
           </p>
         </div>
       </div>

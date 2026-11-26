@@ -1,147 +1,122 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Receipt, Search, Download, CheckCircle2, Clock,
-  AlertCircle, Filter, ArrowUpRight
-} from 'lucide-react';
+import { Download, Plus, Receipt, Search, Send } from 'lucide-react';
+import { useStore, PayStatus } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
+import { Avatar, Card, EmptyState, PageHeader, Pills, StatusBadge } from '@/components/ui';
+
+type Filter = 'ALL' | PayStatus;
 
 export default function PaymentsPage() {
-  const [filterStatus, setFilterStatus] = useState('ALL');
-  const [searchTerm, setSearchTerm] = useState('');
+  const { payments, plans, customerById, openSheet, remind, showToast } = useStore();
+  const [filter, setFilter] = useState<Filter>('ALL');
+  const [q, setQ] = useState('');
 
-  const transactions = [
-    { id: 'TXN-9081', customer: 'Aarav Sharma', plan: 'Class 8 Annual Tuition', amount: 3500, method: 'UPI AutoPay (GPay)', status: 'SUCCESS', date: '18 Nov 2026, 10:24 AM', receiptNo: 'RCP-2026-0812' },
-    { id: 'TXN-9082', customer: 'Kavita Deshmukh', plan: 'Class 9 Bus & Lab Fee', amount: 4200, method: 'UPI AutoPay (PhonePe)', status: 'SUCCESS', date: '18 Nov 2026, 09:15 AM', receiptNo: 'RCP-2026-0811' },
-    { id: 'TXN-9083', customer: 'Sunil Verma', plan: 'Class 10 Term Fee', amount: 8000, method: 'Payment Link', status: 'PENDING', date: '18 Nov 2026, 08:30 AM', receiptNo: '—' },
-    { id: 'TXN-9084', customer: 'Pooja Iyer', plan: 'Quarterly Activity Fee', amount: 2500, method: 'UPI AutoPay (Paytm)', status: 'SUCCESS', date: '17 Nov 2026, 06:12 PM', receiptNo: 'RCP-2026-0810' },
-    { id: 'TXN-9085', customer: 'Nitin Gadkari', plan: 'Transportation Monthly', amount: 1800, method: 'eNACH Mandate', status: 'FAILED', date: '17 Nov 2026, 03:40 PM', receiptNo: '—', reason: 'Insufficient funds' },
-    { id: 'TXN-9079', customer: 'Rohit Kumar', plan: '6-Month Device EMI', amount: 2150, method: 'eNACH Mandate', status: 'SUCCESS', date: '16 Nov 2026, 04:30 AM', receiptNo: 'RCP-2026-0809' },
-    { id: 'TXN-9078', customer: 'Deepika S.', plan: 'Class 9 Monthly', amount: 4000, method: 'Manual Cash Record', status: 'SUCCESS', date: '15 Nov 2026, 11:10 AM', receiptNo: 'RCP-2026-0808' },
-  ];
-
-  const filtered = transactions.filter((tx) => {
-    const matchesStatus = filterStatus === 'ALL' || tx.status === filterStatus;
-    const matchesSearch =
-      tx.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.receiptNo.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+  const term = q.trim().toLowerCase();
+  const shown = payments.filter((p) => {
+    if (filter !== 'ALL' && p.status !== filter) return false;
+    if (!term) return true;
+    const c = customerById(p.customerId);
+    return (c?.name ?? '').toLowerCase().includes(term) || (c?.phone ?? '').includes(term);
   });
+  const n = (s: PayStatus) => payments.filter((p) => p.status === s).length;
+
+  const exportCsv = () => {
+    const rows = [['Date', 'Customer', 'Mobile', 'For', 'Amount', 'Method', 'Status']];
+    shown.forEach((p) => {
+      const c = customerById(p.customerId);
+      rows.push([
+        new Date(p.date).toLocaleString('en-IN'),
+        c?.name ?? '',
+        c?.phone ?? '',
+        plans.find((x) => x.id === p.planId)?.name ?? 'One-time',
+        String(p.amount),
+        p.method,
+        p.status,
+      ]);
+    });
+    const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `payments-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  };
 
   return (
-    <div className="space-y-6">
-      
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Financial Transactions Ledger</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Audit-grade history of all incoming fee debits, payment links, and receipts.
-          </p>
-        </div>
-
-        <button
-          onClick={() => alert('Downloading official CSV transaction export...')}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto"
-        >
-          <Download className="w-4 h-4" /> Export CSV
-        </button>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="flex items-center gap-2 w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by customer, txn ID, receipt..."
-            className="w-full text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 text-xs font-bold w-full sm:w-auto justify-end">
-          {['ALL', 'SUCCESS', 'PENDING', 'FAILED'].map((st) => (
-            <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                filterStatus === st
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {st}
+    <div className="space-y-5">
+      <PageHeader
+        title="Payments"
+        subtitle="Every payment you have received or are waiting for."
+        action={
+          <div className="flex gap-2">
+            <button onClick={exportCsv} title="Download CSV" className="p-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+              <Download className="w-5 h-5" />
             </button>
-          ))}
+            <button onClick={() => openSheet({ type: 'collect' })} className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold shadow-sm">
+              <Plus className="w-4 h-4" /> Collect
+            </button>
+          </div>
+        }
+      />
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 bg-white border border-slate-300 rounded-xl px-3.5 focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-100">
+          <Search className="w-5 h-5 text-slate-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or mobile" className="w-full py-3 text-base focus:outline-none bg-transparent" />
         </div>
+        <Pills
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: 'ALL', label: 'All' },
+            { value: 'SUCCESS', label: `Paid (${n('SUCCESS')})` },
+            { value: 'PENDING', label: `Waiting (${n('PENDING')})` },
+            { value: 'FAILED', label: `Failed (${n('FAILED')})` },
+          ]}
+        />
       </div>
 
-      {/* Transactions Table */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100">
-              <tr>
-                <th className="py-3.5 px-5">Txn ID & Date</th>
-                <th className="py-3.5 px-4">Customer & Plan</th>
-                <th className="py-3.5 px-4">Amount</th>
-                <th className="py-3.5 px-4">Payment Rail</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Receipt</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((tx) => (
-                <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-4 px-5">
-                    <div className="font-bold text-slate-900 font-mono text-xs">{tx.id}</div>
-                    <div className="text-[11px] text-slate-400">{tx.date}</div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="font-bold text-slate-900">{tx.customer}</div>
-                    <div className="text-[11px] text-slate-500">{tx.plan}</div>
-                  </td>
-                  <td className="py-4 px-4 font-bold text-slate-900 text-sm">
-                    {formatCurrency(tx.amount)}
-                  </td>
-                  <td className="py-4 px-4 text-slate-700 font-medium">
-                    {tx.method}
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold ${
-                      tx.status === 'SUCCESS' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                      tx.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                      'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}>
-                      {tx.status}
-                    </span>
-                    {tx.reason && (
-                      <span className="block text-[10px] text-rose-500 mt-0.5">{tx.reason}</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    {tx.status === 'SUCCESS' ? (
-                      <button
-                        onClick={() => alert(`Downloading ${tx.receiptNo}...`)}
-                        className="text-xs font-bold text-brand-600 hover:text-brand-800 hover:underline"
-                      >
-                        {tx.receiptNo}
+      <Card className="overflow-hidden">
+        {shown.length === 0 ? (
+          <EmptyState icon={<Receipt className="w-6 h-6" />} title="No payments" text="Payments you collect will show up here." />
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {shown.map((p) => {
+              const c = customerById(p.customerId);
+              const plan = plans.find((x) => x.id === p.planId);
+              return (
+                <li key={p.id} className="flex items-center gap-3 px-4 sm:px-5 py-4">
+                  <Avatar name={c?.name ?? '?'} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-base font-semibold text-slate-900 truncate">{c?.name ?? 'Unknown'}</div>
+                    <div className="text-sm text-slate-500 truncate">
+                      {plan?.name ?? 'One-time'} · {p.method} ·{' '}
+                      {new Date(p.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </div>
+                    {p.reason && <div className="text-xs text-rose-600 mt-0.5">{p.reason}</div>}
+                  </div>
+                  <div className="text-right space-y-1">
+                    <div className="text-base font-bold text-slate-900">{formatCurrency(p.amount)}</div>
+                    <StatusBadge status={p.status} />
+                  </div>
+                  <div className="hidden sm:block w-28 text-right">
+                    {p.status === 'SUCCESS' ? (
+                      <button onClick={() => showToast(`Receipt sent to ${c?.name} on WhatsApp.`)} className="text-sm font-semibold text-brand-700 hover:underline">
+                        Send receipt
                       </button>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <button onClick={() => remind(p.customerId)} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline">
+                        <Send className="w-3.5 h-3.5" /> Remind
+                      </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

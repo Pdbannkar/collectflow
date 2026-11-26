@@ -9,3 +9,6 @@ build/
 uploads/
 coverage/
 packages/database/generated/
+
+.vercel
+.env*
