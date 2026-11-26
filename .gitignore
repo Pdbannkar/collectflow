@@ -12,3 +12,4 @@ packages/database/generated/
 
 .vercel
 .env*
+*.tsbuildinfo
