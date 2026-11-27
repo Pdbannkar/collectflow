@@ -666,96 +666,114 @@ export default function MarketingLandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-            <span className="text-xs font-bold text-brand-600 uppercase tracking-widest bg-brand-50 border border-brand-200 px-3 py-1 rounded-full">
-              Predictable Pricing
+            <span className="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-50 border border-emerald-300 px-3.5 py-1.5 rounded-full shadow-sm">
+              Zero Upfront Platform Fee • Pure Performance Model
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
-              Simple Plans. Never Hidden Fees.
+              ₹0 Monthly Software Fee. Just 1% per Collection.
             </h2>
             <p className="text-base sm:text-lg text-slate-600">
-              Start with our 30-day trial. Upgrade as your customer base grows.
+              Never pay fixed software fees. You only pay a tiny 1% (+18% GST) when money actually arrives in your bank account!
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 items-stretch">
             
-            {/* Free Trial Plan */}
+            {/* Zero Monthly Fee Card */}
             <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm flex flex-col justify-between">
               <div className="space-y-4">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Starter Evaluation</span>
-                <h3 className="text-2xl font-bold text-slate-900">30-Day Free Trial</h3>
-                <div className="text-4xl font-extrabold text-slate-900">₹0 <span className="text-sm font-medium text-slate-500">for 30 days</span></div>
-                <p className="text-xs text-slate-600">Perfect to test UPI AutoPay, customer portal, and receipts risk-free.</p>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fixed Platform Fee</span>
+                <h3 className="text-2xl font-bold text-slate-900">Zero Fixed Costs</h3>
+                <div className="text-4xl font-black text-slate-900">₹0 <span className="text-sm font-medium text-slate-500">/ forever</span></div>
+                <p className="text-xs text-slate-600">No monthly subscriptions, no annual maintenance charges, zero setup cost.</p>
                 <div className="pt-4 space-y-3 text-xs text-slate-700">
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Up to 50 Customers</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> UPI AutoPay & Payment Links</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> WhatsApp Receipts</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Customer Self-Serve Portal</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> ₹0 Setup & Onboarding Fee</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> ₹0 Monthly Maintenance Charges</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Unlimited Customers & Students</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Unlimited Payment Plans & Schedules</div>
                 </div>
               </div>
               <div className="pt-8">
                 <Link
                   href="/register"
-                  className="w-full inline-block text-center text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 py-3 rounded-xl transition-colors"
+                  className="w-full inline-block text-center text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 py-3.5 rounded-xl transition-colors"
                 >
-                  Start 30-Day Free Trial
+                  Get Started at ₹0 Cost
                 </Link>
               </div>
             </div>
 
-            {/* Growth Plan (Highlighted) */}
+            {/* 1% + 18% GST Highlighted Card */}
             <div className="bg-gradient-to-b from-brand-900 via-brand-900 to-indigo-950 text-white rounded-3xl p-8 shadow-2xl relative flex flex-col justify-between border-2 border-brand-500">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
-                Most Popular for Schools & Stores
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-400 to-emerald-500 text-slate-950 text-xs font-black px-4 py-1 rounded-full uppercase tracking-wider shadow">
+                Pure Pay-As-You-Collect Model
               </div>
               <div className="space-y-4">
-                <span className="text-xs font-bold text-brand-300 uppercase tracking-wider">Growth Tier</span>
-                <h3 className="text-2xl font-bold text-white">Professional</h3>
-                <div className="text-4xl font-extrabold text-white">₹2,499 <span className="text-sm font-medium text-slate-300">/ month</span></div>
-                <p className="text-xs text-slate-300">For established schools, coaching centers, and multi-customer stores.</p>
+                <span className="text-xs font-bold text-brand-300 uppercase tracking-wider">Transaction Fee</span>
+                <h3 className="text-2xl font-bold text-white">1% + 18% GST</h3>
+                <div className="text-4xl font-black text-white">1.0% <span className="text-sm font-medium text-slate-300">+ 18% GST on fee</span></div>
+                <p className="text-xs text-slate-300">Deducted automatically only when a customer or parent successfully pays.</p>
                 <div className="pt-4 space-y-3 text-xs text-slate-200">
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> <strong>Unlimited Customers</strong></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> UPI AutoPay + eNACH NetBanking</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Bulk CSV Customer Import</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Automated Smart Retries & WhatsApp</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Up to 10 Staff Accounts</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> <strong>Zero Collection = Zero Cost to You</strong></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Automated Split: 99% directly to your bank</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> UPI AutoPay (GPay, PhonePe, Paytm) Included</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Automated WhatsApp & SMS Receipts Included</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-400" /> Full GST Input Credit Invoicing</div>
                 </div>
               </div>
               <div className="pt-8">
                 <Link
                   href="/register"
-                  className="w-full inline-block text-center text-sm font-bold bg-brand-500 hover:bg-brand-400 text-slate-950 py-3 rounded-xl transition-all shadow-lg shadow-brand-500/25"
+                  className="w-full inline-block text-center text-sm font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/25"
                 >
-                  Start Professional Plan
+                  Start Collecting Payments Now
                 </Link>
               </div>
             </div>
 
-            {/* Enterprise Plan */}
+            {/* Split Settlement Clarity Card */}
             <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm flex flex-col justify-between">
               <div className="space-y-4">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Institutions</span>
-                <h3 className="text-2xl font-bold text-slate-900">Enterprise</h3>
-                <div className="text-4xl font-extrabold text-slate-900">₹7,999 <span className="text-sm font-medium text-slate-500">/ month</span></div>
-                <p className="text-xs text-slate-600">Multi-branch institutes, large colleges, and franchise chains.</p>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Settlement & Tax</span>
+                <h3 className="text-2xl font-bold text-slate-900">Direct Bank Settlement</h3>
+                <div className="text-4xl font-black text-slate-900">T+1 <span className="text-sm font-medium text-slate-500">Direct to Account</span></div>
+                <p className="text-xs text-slate-600">Money clears directly into your Savings or Current Account with zero holding.</p>
                 <div className="pt-4 space-y-3 text-xs text-slate-700">
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Multi-branch Branch Isolation</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Custom ERP / School Software API Sync</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Dedicated Account Manager</div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Priority Gateway Onboarding Support</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> RBI Compliant Sub-Merchant Split</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Works with Savings OR Current Account</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Instant GST B2B Invoice Generated</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Automated Bank Settlement Statements</div>
                 </div>
               </div>
               <div className="pt-8">
                 <Link
                   href="/register"
-                  className="w-full inline-block text-center text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl transition-colors"
+                  className="w-full inline-block text-center text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 py-3.5 rounded-xl transition-colors"
                 >
-                  Contact for Enterprise
+                  Connect Your Bank Account
                 </Link>
               </div>
             </div>
 
           </div>
+
+          {/* Interactive Math Example Banner */}
+          <div className="mt-12 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+            <div className="space-y-1">
+              <span className="font-extrabold uppercase tracking-wider text-slate-500 text-[11px] block">Transparent Fee Example:</span>
+              <p className="text-slate-800 font-medium text-sm">
+                When you collect a <strong>₹3,000</strong> fee from a student or tenant:
+              </p>
+              <p className="text-slate-600 text-xs">
+                • 1% Platform Fee = <strong>₹30.00</strong> &nbsp;|&nbsp; • 18% GST on Fee = <strong>₹5.40</strong> &nbsp;|&nbsp; • Total Fee = <strong>₹35.40 (1.18%)</strong>
+              </p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 font-bold text-right sm:min-w-[200px]">
+              <span className="text-[10px] text-emerald-700 uppercase tracking-wider block">Deposited in Your Bank:</span>
+              <span className="text-lg font-black text-emerald-800">₹2,964.60</span>
+            </div>
+          </div>
+
         </div>
       </section>
 
