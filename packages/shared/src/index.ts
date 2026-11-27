@@ -21,6 +21,7 @@ export enum BusinessCategory {
   SCHOOL = 'SCHOOL',
   TUITION = 'TUITION',
   MESS = 'MESS',
+  RENT = 'RENT',
   MOBILE_SHOP = 'MOBILE_SHOP',
   ELECTRONICS = 'ELECTRONICS',
   MEMBERSHIP = 'MEMBERSHIP',

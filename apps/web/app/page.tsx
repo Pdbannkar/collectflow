@@ -6,11 +6,11 @@ import {
   CheckCircle2, ArrowRight, ShieldCheck, Zap, Bell, FileText,
   CreditCard, Users, Building, School, Utensils, Smartphone,
   Dumbbell, TrendingUp, ChevronRight, HelpCircle, Star, Sparkles,
-  Lock, RefreshCw, BarChart3, Clock, Check
+  Lock, RefreshCw, BarChart3, Clock, Check, Home
 } from 'lucide-react';
 
 export default function MarketingLandingPage() {
-  const [activeTab, setActiveTab] = useState<'school' | 'coaching' | 'mess' | 'retail' | 'gym'>('school');
+  const [activeTab, setActiveTab] = useState<'school' | 'coaching' | 'mess' | 'retail' | 'gym' | 'rent'>('school');
   const [customersCount, setCustomersCount] = useState<number>(250);
   const [avgAmount, setAvgAmount] = useState<number>(3500);
 
@@ -60,6 +60,20 @@ export default function MarketingLandingPage() {
         frequency: 'Monthly Subscription',
         method: 'UPI AutoPay Recurring',
         reminder: 'Automated receipt upon debit',
+      },
+    },
+    {
+      id: 'rent',
+      name: 'House & Commercial Rent',
+      icon: Home,
+      tagline: 'Flat, PG, Hostel & Commercial Rent',
+      desc: 'Landlords and property managers collect monthly rent on the 1st/5th automatically with instant HRA tax receipts.',
+      planExample: {
+        title: '2BHK Apartment Rent + Maintenance',
+        amount: '₹20,000',
+        frequency: 'Monthly on 5th',
+        method: 'UPI AutoPay (Google Pay / PhonePe)',
+        reminder: 'Landlord PAN verified HRA receipt sent',
       },
     },
     {

@@ -186,6 +186,7 @@ enum BusinessCategory {
   SCHOOL
   TUITION
   MESS
+  RENT
   MOBILE_SHOP
   ELECTRONICS
   MEMBERSHIP

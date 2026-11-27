@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  School, Utensils, Smartphone, Dumbbell, Building, Briefcase,
+  School, Utensils, Smartphone, Dumbbell, Building, Briefcase, Home,
   CheckCircle2, ArrowRight, ArrowLeft, RefreshCw, ShieldCheck,
   Check, Sparkles, Building2, MapPin, Mail, Phone, User, AlertCircle
 } from 'lucide-react';
@@ -45,6 +45,7 @@ export default function RegisterPage() {
 
   const categories = [
     { id: 'SCHOOL', label: 'School / College', icon: School, hint: 'Tuition, term & bus fees' },
+    { id: 'RENT', label: 'Rent & Properties', icon: Home, hint: 'Tenants, flats, PG & commercial' },
     { id: 'TUITION', label: 'Coaching / Institute', icon: Building, hint: 'Course batches & instalments' },
     { id: 'MESS', label: 'Mess / Tiffin Service', icon: Utensils, hint: 'Monthly meal subscriptions' },
     { id: 'MOBILE_SHOP', label: 'Mobile & Electronics', icon: Smartphone, hint: 'Product instalments & EMIs' },

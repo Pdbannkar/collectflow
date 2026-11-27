@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  School, Utensils, Landmark, Smartphone, Dumbbell, ShieldCheck,
+  School, Utensils, Landmark, Smartphone, Dumbbell, ShieldCheck, Home, Key,
   RefreshCw, CheckCircle2, Download, Clock, CreditCard, Calendar,
   User, Phone, Building, ArrowLeft, AlertCircle, HelpCircle,
   Check, ArrowRight, ChevronDown, Sparkles, Pause, Play,
@@ -14,7 +14,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 interface InstitutionProfile {
   id: string;
   name: string;
-  category: 'SCHOOL' | 'MESS' | 'LENDING' | 'MOBILE_SHOP' | 'MEMBERSHIP';
+  category: 'SCHOOL' | 'MESS' | 'LENDING' | 'MOBILE_SHOP' | 'MEMBERSHIP' | 'RENT';
   categoryLabel: string;
   icon: any;
   color: string;
@@ -30,6 +30,15 @@ interface InstitutionProfile {
   mandateMethod: string;
   mandateId: string;
   // Specific Dynamic Category Attributes (Come and Go)
+  rentDetails?: {
+    unitNumber: string;
+    propertyAddress: string;
+    landlordName: string;
+    landlordPan: string;
+    securityDeposit: number;
+    agreementExpiry: string;
+    rentBreakdown: { item: string; amount: number }[];
+  };
   schoolDetails?: {
     rollNumber: string;
     gradeSection: string;
@@ -249,6 +258,42 @@ const INSTITUTIONS: InstitutionProfile[] = [
       { id: 'TXN_GYM_01', date: '2026-11-01', amount: 1500, method: 'UPI AutoPay', status: 'SUCCESS', receiptNo: 'RCP-GYM-1101', description: 'November All-Access Pass' },
     ],
   },
+  {
+    id: 'inst-rent',
+    name: 'Green Park Heights & Residency',
+    category: 'RENT',
+    categoryLabel: 'Residential & Property Rent',
+    icon: Home,
+    color: 'from-emerald-800 to-teal-900',
+    planName: 'Flat 402 — 2BHK Monthly Rent & Society Maintenance',
+    totalAmount: 240000,
+    paidAmount: 140000,
+    instalmentAmount: 20000,
+    remainingInstalments: 5,
+    totalInstalments: 12,
+    nextDueDate: '2026-12-05',
+    frequency: 'Monthly Rent',
+    mandateStatus: 'ACTIVE',
+    mandateMethod: 'UPI AutoPay (Google Pay)',
+    mandateId: 'MND_RENT_449102',
+    rentDetails: {
+      unitNumber: 'Flat 402, Tower B (2BHK Premium)',
+      propertyAddress: 'Green Park Heights, Baner Road, Pune, MH 411045',
+      landlordName: 'Col. Vikram Malhotra (Owner)',
+      landlordPan: 'ABCDE1234F',
+      securityDeposit: 50000,
+      agreementExpiry: '2027-10-31 (11-Month Registered Agreement)',
+      rentBreakdown: [
+        { item: 'Base House Rent', amount: 17500 },
+        { item: 'Society Maintenance & Water', amount: 2000 },
+        { item: 'Reserved Covered Car Parking', amount: 500 },
+      ],
+    },
+    paymentHistory: [
+      { id: 'TXN_RENT_01', date: '2026-11-05', amount: 20000, method: 'UPI AutoPay', status: 'SUCCESS', receiptNo: 'RCP-RENT-NOV2026', description: 'November 2026 House Rent (HRA Exempt Eligible)' },
+      { id: 'TXN_RENT_02', date: '2026-10-05', amount: 20000, method: 'UPI AutoPay', status: 'SUCCESS', receiptNo: 'RCP-RENT-OCT2026', description: 'October 2026 House Rent (HRA Exempt Eligible)' },
+    ],
+  },
 ];
 
 export default function CustomerPortalPage() {
@@ -340,12 +385,12 @@ export default function CustomerPortalPage() {
               </p>
             </div>
             <span className="text-[11px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-full self-start sm:self-auto">
-              5 Active Subscriptions
+              6 Active Subscriptions
             </span>
           </div>
 
           {/* Selector Horizontal Grid / Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 pt-1">
             {institutionsState.map((inst) => {
               const CurIcon = inst.icon;
               const isSelected = inst.id === selectedInstId;
@@ -376,6 +421,7 @@ export default function CustomerPortalPage() {
                     </span>
                     <span className="text-[10px] text-slate-500 mt-0.5 block truncate">
                       {inst.category === 'SCHOOL' && 'Fees & Tuition'}
+                      {inst.category === 'RENT' && 'Flat & PG Rent'}
                       {inst.category === 'MESS' && 'Meal Subscription'}
                       {inst.category === 'LENDING' && 'Regulated EMI'}
                       {inst.category === 'MOBILE_SHOP' && 'Device EMI'}
@@ -753,7 +799,94 @@ export default function CustomerPortalPage() {
               </div>
             )}
 
-            {/* ─── D. IF MOBILE SHOP SELECTED: DEVICE IMEI & WARRANTY COME ─── */}
+            {/* ─── D. IF RENT SELECTED: TENANCY, MAINTENANCE & HRA TAX RECEIPTS COME ─── */}
+            {active.category === 'RENT' && active.rentDetails && (
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm animate-fade-in">
+                <div className="flex items-center justify-between border-b border-emerald-200/60 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="w-10 h-10 rounded-2xl bg-emerald-700 text-white flex items-center justify-center font-bold shadow-md">
+                      <Home className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="text-lg font-bold text-emerald-950">Residential Tenancy & Rent Schedule</h3>
+                      <p className="text-xs text-emerald-800">Automated monthly rent auto-debits with HRA tax receipts for tenants</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold bg-emerald-200 text-emerald-900 px-3 py-1 rounded-full uppercase tracking-wider">
+                    Rent Collection
+                  </span>
+                </div>
+
+                {/* HRA Rent Receipt Card */}
+                <div className="p-4 rounded-2xl bg-white border border-emerald-200 space-y-3 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">HRA Tax Exemption Receipt (Sec 10(13A))</h4>
+                      <p className="text-[11px] text-slate-500">Official receipt containing Landlord's verified PAN for your company IT declaration</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => alert(`Downloading verified HRA Rent Receipt with Landlord PAN (${active.rentDetails?.landlordPan}) for Flat 402...`)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3.5 py-2 rounded-xl transition-all shadow-sm"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download HRA Rent Receipt (PDF)
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Rented Unit</span>
+                      <span className="font-bold text-slate-900 block mt-0.5">{active.rentDetails.unitNumber}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Landlord / Owner</span>
+                      <span className="font-bold text-slate-900 block mt-0.5">{active.rentDetails.landlordName}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Landlord PAN (ITD)</span>
+                      <span className="font-mono font-bold text-emerald-700 block mt-0.5">{active.rentDetails.landlordPan}</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Security Deposit</span>
+                      <span className="font-bold text-slate-900 block mt-0.5">{formatCurrency(active.rentDetails.securityDeposit)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4 text-xs">
+                  <div className="p-4 rounded-2xl bg-white border border-emerald-200 space-y-2">
+                    <span className="font-bold text-slate-800 uppercase tracking-wider block text-[11px]">
+                      Monthly Rent & Maintenance Split:
+                    </span>
+                    <div className="divide-y divide-slate-100">
+                      {active.rentDetails.rentBreakdown.map((item, idx) => (
+                        <div key={idx} className="py-2 flex items-center justify-between">
+                          <span className="text-slate-700 font-medium">{item.item}</span>
+                          <span className="font-bold text-slate-900">{formatCurrency(item.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white border border-emerald-200 space-y-2">
+                    <span className="font-bold text-slate-800 uppercase tracking-wider block text-[11px]">
+                      Tenancy & Agreement Terms:
+                    </span>
+                    <p className="text-slate-600 text-xs">
+                      Property: <strong>{active.rentDetails.propertyAddress}</strong>
+                    </p>
+                    <p className="text-slate-600 text-xs mt-1">
+                      Registered Agreement: <span className="font-medium text-emerald-800">{active.rentDetails.agreementExpiry}</span>
+                    </p>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded mt-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> AutoPay Debits on 5th of every month
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── E. IF MOBILE SHOP SELECTED: DEVICE IMEI & WARRANTY COME ─── */}
             {active.category === 'MOBILE_SHOP' && active.retailDetails && (
               <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm animate-fade-in">
                 <div className="flex items-center justify-between border-b border-purple-200/60 pb-4">
